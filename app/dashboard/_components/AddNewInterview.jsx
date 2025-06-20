@@ -33,26 +33,21 @@ function AddNewInterview() {
     e.preventDefault();
     setLoading(true);
 
-    const inputPrompt = `Job position: ${jobPosition}, Job Description: ${jobDescription}, Years of Experience: ${jobExperience}, Depends on Job Position, Job Description and Years of Experience give us ${process.env.NEXT_PUBLIC_INTERVIEW_QUESTION_COUNT} Interview question along with Answer in JSON format, Give us question and Answer field on JSON,Each question and answer should be in the format:
-  {
-    "question": "Your question here",
-    "answer": "Your answer here"
-  }`;
+    const inputPrompt = `\nJob position: ${jobPosition}\nJob Description: ${jobDescription}\nYears of Experience: ${jobExperience}\n\nReturn ONLY a valid JSON array (no extra text, no markdown, no explanation) of ${process.env.NEXT_PUBLIC_INTERVIEW_QUESTION_COUNT} objects, each with a \"question\" and \"answer\" field, like:\n[\n  { \"question\": \"Q1\", \"answer\": \"A1\" },\n  { \"question\": \"Q2\", \"answer\": \"A2\" }\n]\n`;
 
     try {
       const result = await chatSession.sendMessage(inputPrompt);
       const responseText = await result.response.text();
       console.log("🚀 ~ file: AddNewInterview.jsx:41 ~ onSubmit ~ responseText:", responseText)
-      const jsonMatch = responseText.match(/\[.*?\]/s);
-      if (!jsonMatch) {
-        throw new Error("No valid JSON array found in the response");
-      }
-  
-      const jsonResponsePart = jsonMatch[0];
-      console.log("🚀 ~ file: AddNewInterview.jsx:43 ~ onSubmit ~ jsonResponsePart:", jsonResponsePart);
-  
-      if (jsonResponsePart) {
-        const mockResponse = JSON.parse(jsonResponsePart.trim());
+      let jsonResponsePart = "";
+      try {
+        // Try to extract the first JSON array from the response
+        const jsonMatch = responseText.match(/\[[\s\S]*\]/);
+        if (!jsonMatch) throw new Error("No valid JSON array found in the response");
+        jsonResponsePart = jsonMatch[0];
+
+        // Try to parse it
+        const mockResponse = JSON.parse(jsonResponsePart);
         console.log("🚀 ~ file: AddNewInterview.jsx:45 ~ onSubmit ~ mockResponse:", mockResponse)
         setJsonResponse(mockResponse);
         const jsonString = JSON.stringify(mockResponse);
@@ -68,8 +63,9 @@ function AddNewInterview() {
           }).returning({ mockId: MockInterview.mockId });
           setLoading(false);
           router.push(`dashboard/interview/${res[0]?.mockId}`);
-      } else {
-        console.error("Error: Unable to extract JSON response");
+      } catch (err) {
+        console.error("Error parsing Gemini response as JSON:", err, responseText);
+        // Optionally, show a user-friendly error message here
       }
     } catch (error) {
       console.error("Error fetching interview questions:", error);

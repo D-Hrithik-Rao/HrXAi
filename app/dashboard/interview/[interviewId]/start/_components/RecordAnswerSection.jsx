@@ -72,13 +72,14 @@ const RecordAnswerSection = ({
       "🚀 ~ file: RecordAnswerSection.jsx:38 ~ SaveUserAnswer ~ feedbackPrompt:",
       feedbackPrompt
     );
-    const result = await chatSession.sendMessage(feedbackPrompt);
-    console.log(
-      "🚀 ~ file: RecordAnswerSection.jsx:46 ~ SaveUserAnswer ~ result:",
-      result
-    );
-    const mockJsonResp = result.response
-      .text()
+    // Call the new API route
+    const response = await fetch('/api/gemini/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ feedbackPrompt }),
+    });
+    const data = await response.json();
+    const mockJsonResp = data.text
       .replace("```json", "")
       .replace("```", "");
 
